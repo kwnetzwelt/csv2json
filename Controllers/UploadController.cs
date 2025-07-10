@@ -1,7 +1,9 @@
 using System.IO.Compression;
 using System.Text.Json;
+using System.Xml;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualBasic.FileIO;
 
 namespace csv_to_json.Controllers;
 
@@ -38,7 +40,7 @@ public class UploadController : Controller
         using (var zipArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
         {
             using var reader = new StreamReader(memoryStream);
-            var headers = (await reader.ReadLineAsync())?.Split(',');  // Read headers.
+            var headers = ParseLine(reader);
 
             if (headers == null)
             {
@@ -49,11 +51,17 @@ public class UploadController : Controller
             int fileIndex = 1;
 
             // Process CSV rows and convert them to the selected output format.
-            while ((line = await reader.ReadLineAsync()) != null)
+            while (!reader.EndOfStream
+                  )
             {
-                var values = line.Split(',');
-                var content = string.Empty;
+                var values = ParseLine(reader);
+                if (values == null || values.Count == 0)
+                {
+                    continue; // Skip blank or malformed rows
+                }
 
+                var content = string.Empty;
+                if(values == null) continue;
                 if (outputFormat == "json")
                 {
                     var jsonObject = headers.Zip(values, (header, value) => new { header, value })
@@ -83,7 +91,34 @@ public class UploadController : Controller
         return File(zipStream.ToArray(), "application/zip", zipFileName);
     }
 
-    
-    
+    private List<string>? ParseLine(StreamReader reader)
+    {
+        // Store parsed line data.
+        List<string>? lineContent = null;
+
+        // Do not let TextFieldParser close the StreamReader.
+        using var textReader = new StringReader(reader.ReadLine() ?? string.Empty);
+        using (var parser = new TextFieldParser(textReader))
+        {
+            parser.SetDelimiters(",");
+            parser.HasFieldsEnclosedInQuotes = true;
+
+            try
+            {
+                if (!parser.EndOfData)
+                {
+                    lineContent = parser.ReadFields()?.ToList();
+                }
+            }
+            catch (MalformedLineException ex)
+            {
+                // Handle malformed line or keep error logging.
+                Console.WriteLine($"Malformed CSV line exception: {ex.Message}");
+            }
+        }
+
+        return lineContent;
+    }
+
 
 }

@@ -2,6 +2,9 @@
 
 This is a simple web application that converts CSV files to a series of JSON or TXT files. Each row in the uploaded CSV is converted into a separate file, and the resulting files are then compressed into a single ZIP archive for download.
 
+![CSV to JSON Converter Screenshot](csv2json-screenshot.png)
+
+
 ## Features
 
 - Upload a CSV file.

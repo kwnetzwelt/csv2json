@@ -1,0 +1,7 @@
+﻿services:
+  csv-to-json:
+    image: csv-to-json
+    build:
+      context: .
+      dockerfile: Dockerfile
+
